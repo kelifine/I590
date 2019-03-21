@@ -1,0 +1,60 @@
+---
+title: "data_wrangling"
+author: "Keli Fine"
+date: "3/19/2019"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+library(dplyr)
+library(nycflights13)
+```
+Sources:  
+* Class lectures week 4 and 5
+* https://bookdown.org/rdpeng/exdata/managing-data-frames-with-the-dplyr-package.html
+
+
+###Regular Expressions
+
+* str_detect(string, pattern): returns True if pattern is found
+* str_extract(string, pattern): returns character vector of first match
+* str_extract_all(string, pattern): returns character vector of all matches
+* str_replace(string, pattern, replacement): replaces first instance of match
+* str_replace_all(string, pattern, replacement): replaces all instances of match
+* str_split(pattern): splits string by pattern
+
+
+```{r regex}
+sentence <- "The fat cat in the hat sat on the mat."
+str_extract_all(sentence, '.at')
+str_replace_all(sentence, 'cat', 'dog')
+```
+###Data transformation
+
+####Tidyr:
+* gather(): transforms wide table into long table
+* separate(): teases variables apart using splitting patterns
+* spread(): transforms long table into wide table
+
+###Dplyr:
+* %>%: piping operator
+* select(df, column:column): returns subset of columns, can also use starts_with or * ends_with to select columns
+* filter(df, variable <>= val): returns subset of rows
+* arrange(df, variable): orders results by variable, wrap with desc() for reverse order
+* rename(df, variable=newname): renames column of dataframe
+* mutate(df, name=func(variable)): adds new column to df
+* transmute(df, name=func(variable)): same as mutate but drops all non transformed variables
+* group_by(df, column): groups rows by specified variable
+* summarize(df, name=func(variable)): returns specified summary statistics 
+
+
+
+
+
+```{r nycflights}
+flights %>% filter(month==1) %>% arrange(day) %>% select(month:arr_delay) %>% mutate(gain=arr_delay-dep_delay)
+```
