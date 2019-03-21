@@ -1,0 +1,78 @@
+---
+title: "data_analyis"
+author: "Keli Fine"
+date: "3/19/2019"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lmtest)
+library(MASS)
+library(matrixStats)
+```
+Sources:  
+* http://daviddalpiaz.github.io/appliedstats/model-diagnostics.html  
+* Data Camp: Case Study - Regression in R  
+* https://www.oreilly.com/library/view/practical-statistics-for/9781491952955/ch01.html  
+
+Libraries:   
+* library(lmtest)  
+* library(MASS)  
+* library(matrixStats)
+
+###Linear Models
+
+* lm(response~predictor, data): returns linear model
+* bptest(): test of homoscedasticity
+```{r cars}
+data("mtcars")
+lm = lm(mtcars$mpg ~ mtcars$cyl)
+bptest(lm)
+```
+* Shapiro.test(): test for normality
+* hatvalues(): returns leverages of linear model
+* resid(): returns residuals of linear model
+* rstandard(): returns standardized residuals
+* fitted(): returns fitted values
+```{r}
+hatvalues(lm)
+```
+
+###General Linear Models
+
+* glm(response~predictor * interaction + offest, data, family): family can be 'gaussian' or 'poisson'
+* predict(model, data to predict, type, se.fit): for poisson, type is response, for link type is link, if se.fit = True gives you standard errors
+* expand.grid(variable=, variable=): for interactions between variables, can be feed to predict)
+* dispersion(model, modeltype): ratio between residual deviance and degrees of freedom
+* glm.nb(response~predictor, data): negative binomial general linear model, addition of theta relaxes assumption of equality between mean and variance
+* drop1(model, test): test influence of each variable
+* AIC(model, model): test for which model is better, difference of 3 or greater means one is better
+
+```{r warning=FALSE}
+cars_glm = glm(mtcars$mpg ~ mtcars$cyl, mtcars, family='gaussian')
+cars_nb = glm.nb(mtcars$mpg ~ mtcars$cyl, mtcars)
+AIC(cars_glm, cars_nb)
+```
+###Location Estimates
+
+* mean(df[[variable]], trim=trim): returns the mean of the variable or trimmed mean if trim is specified
+* median(df[[variable]]): returns the median of the variable
+* weighted.mean(df[[variable]], w=df[[variable]]): returns weighted mean
+* weightedMedian(df[[variable]], w=df[[variable]]): returns weighted median
+```{r}
+mean(mtcars$mpg, trim=.1)
+median(mtcars$mpg)
+```
+###Variability Estimates
+* sd(df[[variable]]): returns standard deviation of variable
+* IQR(df[[variable]]): returns interquartile range of variable
+* mad(df[[variable]]): returns median absolute deviation from the median
+* quantile(df[[variable]], p=c(pct, pct)): returns specified quantiles
+```{r}
+sd(mtcars$mpg)
+mad(mtcars$mpg)
+```
+
