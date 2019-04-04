@@ -1,0 +1,106 @@
+---
+title: "data_visualization"
+author: "Keli Fine"
+date: "3/19/2019"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Sources:  
+* http://daviddalpiaz.github.io/appliedstats/model-diagnostics.html  
+* https://www.oreilly.com/library/view/practical-statistics-for/9781491952955/ch01.html
+* https://r4ds.had.co.nz/data-visualisation.html
+
+Libraries:  
+* library(corrplot)
+* library(descr)
+* library(ggplot)
+* library(tidyverse)  
+
+### QQ plots
+
+* qqnorm(): quantile-quantile plot for normality
+* qqline(): adds line to qqnorm
+
+```{r cars}
+data("mtcars")
+lm = lm(mtcars$mpg ~ mtcars$cyl, data=mtcars)
+qqnorm(resid(lm))
+qqline(resid(lm))
+```
+
+### Barplots, boxplots, and histograms
+
+* boxplot(variable-variable, data, ylab=''): returns boxplot of specified variable
+* hist(df[[variable]], breaks=breaks): returns histogram. freq=false for density line
+* lines(density(df[[variable]])): adds density line to plot
+* barplot(as.matrix(df))
+
+```{r}
+hist(mtcars$mpg, breaks=12)
+```
+### Frequency, correlation, and contingency
+
+1. breaks <- seq(from=min(df[[variable]]), to=max(df[[variable]]), length=)
+2. df <- cut(df[[variable]], breaks=breaks, right=True, include.lowest=True)
+3. table(df): returns frequency table
+* corrplot(cor(df), method): returns correlation plot
+* plot(x, y, xlab, ylab): returns scatterplot
+* CrossTable(variable, variable, prop.c=False, prop.chisq=False, prop.t=False): returns contingency table
+
+```{r}
+library(corrplot)
+corrplot(cor(mtcars))
+```
+### GGPlot library
+
+* ggplot(data, mapping=aes(x,y, color, size, shape, alpha, fill), position): aes maps by variable, outside by name
+* geom_point(): scatterplot
+* geom_smooth(): line plot
+* geom_bar(): bar plot
+* geom_boxplot(): box plot
+* geom_polygon(): returns shape plot
+* geom_abline(): adds line
+* coord_flip(): switches x and y axes
+* coord_polar(): uses polar coordinates
+* coord_quickmap(): sets aspect ratio for maps
+* stat_<func>(): interchangeable with geoms
+* facet_wrap(~variable, nrow): returns rows of plots
+* facet_grid(variable~variable): returns grid of plots
+
+```{r}
+library(tidyverse)
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_point(mapping = aes(color = class)) + 
+  geom_smooth()
+```
+### Ggvis 
+
+* graph = data + coordinate system + mark + properties
+* = maps variable, := maps value to properties
+* properties: fill, stroke, color
+
+* ggvis(~var, ~var, properties): combined with layers returns graph
+* layer_points(properties): returns scatterplot
+* layer_lines(properties): returns line plot
+* compute_smooth(~var, ~var, properties): returns dataframe with predictor and response, combine with layer_lines for line plot
+* layer_smooth(properties): returns smoothed line of scatterplot
+* compute_bin(~var, properties): combined with layer_rect returns histogram
+* layer_rect(properties): combined with compute_bin returns histogram
+* layer_histograms(properties): returns histogram
+* layer_model_predictions(model): returns graph of model
+* add_axis(x/y, title, values, subdivide, orient): adds properties to axis
+* add_legend(property, title): adds legend to plot
+* scale_datetime(property, c(colors)): sets color value for datetime variable
+* scale_logical(property, c(colors)): sets color value for logical variable
+* scale_nominal(property, c(colors)): sets color value for character variable
+* scale_numeric(property, c(colors)): sets color value for numeric variable
+* scale_singular(property, c(colors)): sets color value for single variable
+```{r}
+library(ggvis)
+mtcars %>% ggvis(~wt, ~mpg) %>% layer_points() %>% layer_smooths()
+```
