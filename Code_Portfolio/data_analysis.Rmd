@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(lmtest)
 library(MASS)
 library(matrixStats)
+library(tree)
 ```
 Sources:  
 * http://daviddalpiaz.github.io/appliedstats/model-diagnostics.html  
@@ -22,6 +23,7 @@ Libraries:
 * library(lmtest)  
 * library(MASS)  
 * library(matrixStats)
+* library(tree)
 
 ###Linear Models
 
@@ -75,4 +77,17 @@ median(mtcars$mpg)
 sd(mtcars$mpg)
 mad(mtcars$mpg)
 ```
+###Kmeans
+* dist(df or matrix, method='euclidean'): returns Euclidean (or other) distance
+* Kmeans(data, centers): generates k means model of data with centers number of centers
+  - model$cluster: vector indicating which cluster each point is in
+  - model$tot.withinss: total within cluster sum of squares
 
+###Decision Trees 
+* tree(outcome~predictor+predictor, data=data): returns decision tree 
+* plot(tree): returns plot of tree without labels
+* text(tree): adds labels to plot
+* partition.tree(tree, add=TRUE): adds partitions to regular plot
+* predict(tree, newdata, type): if type=class returns class with highest probability, otherwise returns probabilities
+* plot(cv.tree(tree, method)): plot of misclassification or deviance
+* prune.tree(best=): returns best tree with 'best' number of leaves
