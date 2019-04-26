@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(readr)
+library(tidyverse)
 library(corrplot)
 library(dplyr)
 library(lmtest)
@@ -16,50 +17,68 @@ library(tree)
 library(plyr)
 gapminder <- read_csv('../data/gapminder.csv')
 ```
+# Gapminder Final Project
 
 ## Introduction
 
 The gapminder dataset contains data on the life expectancy, population, and income by country and year. The data comprises of 41,284 observations of six variables: country, year, life, population, income, and region. Population and income have 25,817 and 2,341 missing values respectively. The observations go all the way back to 1800, and income varies all the way from 142 to 182,668. Life expectancy ranges from 1 to 84.1, and population goes from 1,548 to 1.376 million. There are two character variables (country and region), and four doubles (year, life, population and income). Some questions that this data could answer might be looking at the relationship between life expectancy and income, life expectancy and country or region, and income and country or region. In order to refine these questions, a closer look at the data is required. 
 
 ## Data wrangling
+
 Since the gapminder dataset only measures population every 10 years, some data wrangling is required. 
+
 ```{r}
 gapminder <- gapminder %>% mutate(roundYear = round_any(Year, 10)) %>% group_by(Country, roundYear, region) %>% dplyr::summarise(avgLife = mean(life), avgIncome = mean(income), maxPop = max(population, na.rm=TRUE))%>% mutate(maxPop = ifelse(is.infinite(maxPop), 0, maxPop))
 ```
+
 We have grouped observations by decade, taking the average life expectancy and income and the maximum population for each decade and country. Now let's explore our data. 
 
 ## Exploratory Data Analysis
 
+In order to get a sense of what kinds of questions we might be able to answer with our data, we need to get a sense of what our data looks like. 
+
 ```{r}
 hist(gapminder$avgIncome, breaks=40, xlim=c(0, 40000), main='Income Distribution', xlab='Average Income by decade')
 ```
+
 A look at the histogram of overall income shows a great majority of the observations are 10,000 or below, which may not be as extreme as it seems considering the data goes back to 1800 and includes observations from all around the world. This suggests it might be worth looking at the data by year and by region. 
+
 ```{r}
 hist(gapminder$maxPop/1000000, breaks=100, xlim=c(0, 100), main="Population distribution", xlab="Population in millions by decade")
 ```
+
 Similarly, the population seems to be heavily skewed, with most observations below 100 million. This also suggests that organizing our data by year may give us better insight. 
+
 ```{r}
 boxplot(gapminder$avgLife, data=gapminder, ylab="Years", main="Life expectancy by decade")
 ```
+
 A boxplot of the life variable shows the median falls just above 30, with half the observations falling between just under 60 and around 30. 
+
 ```{r}
 numeric <- c("roundYear", "avgLife", "maxPop", "avgIncome")
-corrplot(cor(gapminder[numeric], use = "pairwise.complete.obs"), main="Correlations of numeric variables")
+corrplot(cor(gapminder[numeric], use = "pairwise.complete.obs"), mar = c(1, 1, 3, 1),  main="Correlations of numeric variables")
 ```
+
 Finally, a correlation plot of the numeric variables shows a fairly strong positive correlation between life expectancy and year and a slightly less strong positive correlation between income and life expectancy. Due to the number of missing values in the population variable, it is hard to infer much about the correlations for that variable. 
 
 Based on the information gained from this exploratory data analysis, the afore mentioned questions can be further refined to how has life expectancy changed in each region over the past century, how has income changed in the past century, and does income correlate with region and/or life expectancy.
 
-## Income vs Life expectancy
+## Linear Models
+
+### Income vs Life expectancy
 
 We now generate a linear model with the life expectancy as a response variable and income as a predictor variable. 
+
 ```{r}
 gapminder1990 <- gapminder %>% filter(roundYear >=1990) 
 lm_1990 <- lm(avgLife~avgIncome, data=gapminder1990)
 summary(lm_1990)
 ```
+
 Our residuals range from -22.442 to 11.263 with a median of 1.739. Our model has a slope of .0002959 and a y intercept of 64.65, with a standard error of .3343. Our p value is well below .05, allowing us to reject the null hypothesis that the true coefficient of the model is 0.   
 A plot of the residuals versus the fitted values of a linear model of the data shows that our variance is certainly not constant, suggesting that the true model of the data is not linear. If the true model was linear we would expect to see a mean of 0 and an even spread of the residuals. however, the mean appears to be well below zero and the spread is not even. Our qq plot is certainly not a straight line, suggesting that our errors are not normally distributed.  
+
 ```{r}
 par(mfrow=c(2,2))
 plot(lm_1990)
@@ -67,59 +86,75 @@ plot(lm_1990)
 ```{r}
 bptest(lm_1990)
 ```
+
 A Breusch-Pagan test confirms that the assumption of homoscedasticity has not been met, as the p value is well below 0.05. Let's try log transforming our data. 
+
 ```{r}
 log_lm_1990 <- lm(log(avgLife)~log(avgIncome), data=gapminder1990)
 par(mfrow=c(2,2))
 plot(log_lm_1990)
 ```
+
 A log transformation of both the predictor and response variables gives us what looks like a much better distribution of the residuals, though the mean seems to be slightly below zero. 
+
 ```{r}
 bptest(log_lm_1990)
 shapiro.test(resid(log_lm_1990))
 ```
+
 However, a Breusch Pagan test confirms that the assumption of homoscedasticity has still not been met as the p value is even lower than before. Our qq plot also shows that our errors are not normally distributed as the errors certainly do not form a straight line, and a Shapiro test confirms this interpretation of the plot. 
 
+### Life expectancy vs region and year
 
-## Life expectancy vs region and year
+Let's now look at whether region and year influences average life expectancy. Here, our dependent variable is average life expectancy with region and rounded year as independent or predictor variables.
 
-Let's now look at whether region and year influences average life expectancy. Here, our dependent variable is average life expectancy with region and rounded year as independent or predictor variables.  
 ```{r}
 gapminder1900 <- gapminder %>% filter(roundYear>=1900) %>% group_by(region, roundYear)
 lm_life <- lm(avgLife~region+roundYear, data=gapminder1900)
 summary(lm_life)
 ```
+
 Our model has an intercept of -6.967e+02 and coefficients of -3.177e+00 for the East Asia and Pacfici region, 4.562e+00 for the Europe and Central Asia region, -3.835e+00 for the Middle East and North Africa, -9.851e+00 for South Asia, -1.081e+01 for Sub-Saharan Africa, and 3.840e-01 for rounded year. This model also has an extremely low p value, suggesting that there is a very small chance we would have got these coefficients by chance if the true coefficients were 0.
+
 ```{r}
 par(mfrow=c(2,2))
 plot(lm_life)
 ```
+
 This model has problably been influenced by the fact that we have grouped the data by decade, hence the striated pattern in the residuals. However, we can see clear patterns even in the striations, with some having a wide spread an others clustered tightly, confirming that the assumption of constant variance has been violated and therefore a linear model does not work for this data. However, our qq plot looks fairly close to linear, suggesting that our errors may be normally distributed. 
 
 ```{r}
 bptest(lm_life)
 shapiro.test(resid(lm_life))
 ```
+ 
 A Shapiro Wilk test tells us the errors are not actually from a normal distribution as the p value is just below .05, and a Breusch Pagan test tells us that the assumption of homoscedasticity has not been met as the p value is well below .05. Both these tests suggest that a linear model is not a great fit for this data, which we can confirm by looking at the residuals. 
 
 
-## Income vs region
+### Income vs region
+
 Does region predict income over the past century? Here we will generate a linear model with average Income as the response variable and region and rounded year as predictor variables.  
+
 ```{r}
 gapminder_income <- gapminder %>% filter(roundYear>=1900) %>% group_by(region, roundYear)
 lm_income <- lm(avgIncome~region+roundYear, data=gapminder_income)
 summary(lm_income)
 ```
+
 We can see from our residuals that we probably do not have constant variance as the median is -1713. Our model coefficients range from 7.085e+03 to -5.556e+03, and our p value is again well below .05. 
+
 ```{r}
 par(mfrow=c(2,2))
 plot(lm_income)
 ```
+
 A QQ plot of our residuals shows a definite skew at the right hand side of the graph, suggesting that our errors are not normally distributed, and a Shapiro-Wilk test confirms this. The plot of our residuals shows they are certainly not randomly distributed and a bptest confirms this.
+
 ```{r}
 bptest(lm_income)
 shapiro.test(resid(lm_income))
 ```
+
 Let's look at a log transformation to see if our residuals are any better. 
 
 ```{r}
@@ -127,24 +162,26 @@ log_lm_income <- lm(log(avgIncome)~region+roundYear, data=gapminder_income)
 par(mfrow=c(2,2))
 plot(log_lm_income)
 ```
-While we still see the striations that might indicate our rounded Year variable, these residuals seem much closer to having a constant variance with a mean of 0, though a bptest confirms that the assumption of constant variance still has not been met. 
+
+While we still see the striations that might indicate our rounded Year variable, these residuals seem much closer to having a constant variance with a mean of 0, though a bptest confirms that the assumption of constant variance still has not been met and a Shapiro Wilk test confirms that our residuals are still not normally distributed. 
 
 ```{r}
 bptest(log_lm_income)
 shapiro.test(resid(log_lm_income))
 ```
 
-
 ## Clustering
-
 ### Predicting Life expectancy
+
 Let's see if clustering can give us better insight into our data.  
+
 ```{r}
 gap_tree <- suppressWarnings(tree(avgLife~avgIncome+roundYear+region+Country+maxPop, data=gapminder1990))
 plot(gap_tree)
 text(gap_tree)
 title("Life Expectancy by all other variables")
 ```
+
 Fitting a decision tree on our data shows that even when including all the variables in the analysis, income is the best predictor for life expectancy, with higher incomes predicting higher life expectancy.
 
 Let's use kmeans models to model the data. First, we will determine the optimal number of clusters. 
@@ -160,22 +197,27 @@ plot(k.values, wss_values,
        xlab="Number of clusters K",
        ylab="Total within-clusters sum of squares", main="Average life expectancy vs max population")
 ```
+
 From the plot of the total within clusters sum of squares, it looks like 2 clusters is optimal for this data.   
+
 ```{r}
 km_pop <- kmeans(na.omit(gapminder1990[c("avgLife", "maxPop")]), 2)
 plot(gapminder1990[c("avgLife", "maxPop")], col=km_pop$cluster, main="Average Life Expectancy and Max Population")
 ```
+
 While there is a definite distinction between the two clusters, the bottom cluster is very wide and the top cluster is very dispersed. The graph of this data suggests clustering might not be the best model for this data, as it doesn't lend itself well to distinct groups beyond the division between the top and bottom of the graph. 
 
 ### Predicting average income
 
 Let's look at a decision tree of average income by region and year.
+
 ```{r}
 avgIncome_tree <- suppressWarnings(tree(avgIncome~region+roundYear, data=gapminder_income))
 plot(avgIncome_tree)
 text(avgIncome_tree)
 title("Average income by region and year")
 ```
+
 Our model shows that year is the best predictor of income, with income growing over time, with three different income buckets with averages of $3,038, $11,120, and $16,320 and split by the years 1965 and 1995. Let's look at what this data looks like with a K Means model. 
 
 ```{r}
@@ -189,24 +231,28 @@ plot(k.values, wss_values,
        xlab="Number of clusters K",
        ylab="Total within-clusters sum of squares", main="Average income by year (rounded)")
 ```
+
 It looks like 3 clusters will be the optimal number for this data. 
 
 ```{r}
 km_pop <- kmeans(na.omit(gapminder_income[c("avgIncome", "roundYear")]), 3)
 plot(gapminder_income[c("avgIncome", "roundYear")], col=km_pop$cluster, main="Average Income and Year")
 ```
+
 Our k means model shows that the data doesn't fit well into clusters. The lines are due to the fact that we have grouped data by year, but even within the lines the clusters are overlapping almost completely. 
 
 
 Finally, let's look at average life expectancy by region and year. 
+
 ```{r}
 life_tree <- suppressWarnings(tree(avgLife~roundYear+region, data=gapminder1900))
 plot(life_tree)
 text(life_tree)
 title("Average life expectancy by year and region")
 ```
+
 Year is also the strongest predictor of life expectancy, with life expectancy growing with the year. The biggest difference appears to be from before 1955 to after, as there is a jump of almost twenty years in average life expectancy from between 1945 and 1955 to 1955 and and 1975. 
 
-# Summary
+## Summary
 
 Neither linear models nor k means clustering fit our data particularly well for any of our questions. In each linear model, the assumptions of constant variance (homoscedasticity) and normality of errors were not met in any of our three models. In both of our k means models, the graphs of our clusters did not show distinct, well-formed clusters. Clusters either overlapped or encompassed such a large spread of data that they did not give us much additional information. Our decision tree analysis was able to show that life expectancy increased with time over the past century, as did average income. Finally, income proved to be the best predictor of life expectancy across all other variables and was positively correlated with life expectancy. 
